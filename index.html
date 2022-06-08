@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Socket.IO chat</title>
+
+    <style>
+        body {
+            margin: 0;
+            padding-bottom: 3rem;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+
+        p {
+            display: inline-block;
+        }
+
+        #form {
+            background: rgba(0, 0, 0, 0.15);
+            padding: 0.5rem;
+            position: fixed;
+            bottom: 5px;
+            left: 0;
+            right: 0;
+            display: flex;
+            height: 10rem;
+            box-sizing: border-box;
+            backdrop-filter: blur(10px);
+        }
+
+        /* #input {
+            border: none;
+            padding: 0 1rem;
+            flex-grow: 1;
+            border-radius: 2rem;
+            margin: 0.25rem;
+        } */
+
+        #input:focus {
+            outline: none;
+        }
+
+
+        #form>button {
+            background: #333;
+            border: none;
+            padding: 0 1rem;
+            margin: 0.25rem;
+            border-radius: 3px;
+            outline: none;
+            color: #fff;
+        }
+
+        #messages {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        #messages>li {
+            padding: 0.5rem 1rem;
+        }
+
+        #messages>li:nth-child(odd) {
+            background: #efefef;
+        }
+    </style>
+    <script src="https://cdn.tiny.cloud/1/79v4atzma17mso0fsmd4kxcnt33i9581ff3qkhx9rzl1w2hc/tinymce/6/tinymce.min.js"
+        referrerpolicy="origin"></script>
+</head>
+
+<body>
+    <ul id="messages"></ul>
+    <form id="form" action="">
+        <textarea class="tinymce" id="input" placeholder="Chat comes here...." autocomplete="off"> </textarea>
+        <button>Send</button>
+    </form>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        var socket = io();
+
+        var form = document.getElementById('form');
+        var input = document.getElementById('input');
+        var ul = document.getElementById("messages");
+
+        const append = (msg, pos, style = "") => {
+            var li = document.createElement("li");
+            var msgElement = document.createElement("div");
+            msgElement.innerHTML = msg;
+            msgElement.style.textAlign = pos;
+            if (style) msgElement.style.fontStyle = style;
+            li.appendChild(msgElement);
+            ul.appendChild(li);
+        };
+
+        var name = prompt('Enter your name-');
+        // var content = editor.getContent();
+        socket.emit('new-user-joined', name);
+
+        form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var editor = tinymce.get('input');
+            var content = editor.getContent();
+            if (content) {
+                socket.emit('chat message', content);
+                var li = document.createElement("li");
+                append(`You : ${content}`, 'right');
+                editor.setContent("");
+            }
+            else console.log("no content found but input value ->" + input.value);
+        });
+        socket.on('user-joined', (name) => {
+            append(`${name} joined the chat`, 'center', 'italic');
+        });
+        socket.on('user-left', (name) => {
+            append(`${name} left the chat`, 'center', 'italic');
+        });
+
+        socket.on('receive', (data) => {
+            append(`${data.name}: ${data.message} `, 'start');
+        });
+
+    </script>
+    <script>
+        tinymce.init({
+            selector: '#input',
+            width: "100%",
+            height: "100%",
+            resize: true,
+            plugins: "image code link lists emoticons preview",
+            toolbar:
+                "bold italic underline strikethrough | forecolor | numlist bullist | link blockquote emoticons | image code",
+            menubar: false,
+            link_default_protocol: 'https',
+            statusbar: false,
+            toolbar_location: "up",
+            autoresize_bottom_margin: 0,
+            contextmenu: false,
+            setup: (ed) => {
+                editor = ed;
+            },
+        });
+    </script>
+
+</body>
+
+</html>
